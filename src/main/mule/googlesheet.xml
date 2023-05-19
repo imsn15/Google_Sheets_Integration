@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:google-sheets="http://www.mulesoft.org/schema/mule/google-sheets"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/google-sheets http://www.mulesoft.org/schema/mule/google-sheets/current/mule-google-sheets.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="d0fefc8e-8dfb-4627-98fa-13d5e76e5f58" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<google-sheets:config name="Google_Sheets_Config" doc:name="Google Sheets Config" doc:id="23f2dff1-79b2-4efd-bdbd-66bf50743017" >
+		<google-sheets:oauth-2-0-connection >
+			<google-sheets:oauth-authorization-code consumerKey="972930108822-krjqpqr2ln86p87c1ae4sm61hap01umt.apps.googleusercontent.com" consumerSecret="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"/>
+			<google-sheets:oauth-callback-config listenerConfig="HTTP_Listener_config" callbackPath="/oauth2callback" authorizePath="/authorize" externalCallbackUrl="http://localhost:8081/oauth2callback"/>
+		</google-sheets:oauth-2-0-connection>
+	</google-sheets:config>
+	<salesforce:sfdc-config name="Salesforce_Config" doc:name="Salesforce Config" doc:id="ca647a63-3401-4c15-8b4b-5a01e3605afb" >
+		<salesforce:basic-connection username="imsn@eaiesb.sandbox" password="Novv15@sn" securityToken="tDO4ilK72xzE6WfIqPpKZl5Z5" />
+	</salesforce:sfdc-config>
+	<flow name="googlesheetFlow" doc:id="81086c67-c629-479c-b6c6-c30a658216f7" >
+		<http:listener doc:name="Listener" doc:id="74938cc6-d62f-46c4-9992-852f855b15da" config-ref="HTTP_Listener_config" path="sheet"/>
+		<logger level="INFO" doc:name="Logger" doc:id="f1707928-4d7e-49d7-a3ed-e8d9ce521d28" message='"Append Data:" #[payload]'/>
+		<ee:transform doc:name="Transform Message" doc:id="05a1c64d-c227-4700-bc08-4f10f9ebab21" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	majorDimension : payload.majorDimension as String,
+	values: payload.values,
+	range: payload.range
+}]]></ee:set-payload>
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="message" ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="870d6eba-3c97-4a9a-88fd-7d8679b4c2fc" message='"Specified range:" #[payload.range] "and value input option as: " #[vars.message.valueinputOption] " for target spreadsheet:" #[vars.message.spreadSheetId]'/>
+		<salesforce:query doc:name="Query" doc:id="a5800f6f-dc59-4a1d-85f9-68682c055aa4" config-ref="Salesforce_Config">
+			<salesforce:salesforce-query ><![CDATA[select Status,CaseNumber,AccountId,ContactId,Priority from Case
+
+
+]]></salesforce:salesforce-query>
+		</salesforce:query>
+		<ee:transform doc:name="Transform Message" doc:id="18519e1c-c939-45b2-88e5-a1360fd3b908" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+[{
+	AccountId : payload.AccountId,
+	CaseNumber : payload.CaseNumber,
+	ContactId : payload.ContactId,
+	Priority : payload.Priority,
+	Status : payload.Status
+}]]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<google-sheets:create-spreadsheets-values-rangeappend-by-spreadsheet-id doc:name="Append Spreadsheets Values" doc:id="e4f7771d-e0e5-48e8-aacc-15959076024f" config-ref="Google_Sheets_Config" insertDataOption="#[vars.message.valueinputOption]" spreadsheetId="vars.message.spreadSheetId" range="payload.range"/>
+		<ee:transform doc:name="Transform Message" doc:id="59394cf3-685c-4b3a-aeb9-79505bf993c0" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"Response" : payload
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>
