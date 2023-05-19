@@ -17,7 +17,7 @@ http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mu
 		</google-sheets:oauth-2-0-connection>
 	</google-sheets:config>
 	<salesforce:sfdc-config name="Salesforce_Config" doc:name="Salesforce Config" doc:id="ca647a63-3401-4c15-8b4b-5a01e3605afb" >
-		<salesforce:basic-connection username="imsn@eaiesb.sandbox" password="Novv15@sn" securityToken="tDO4ilK72xzE6WfIqPpKZl5Z5" />
+		<salesforce:basic-connection username="*****" password="****" securityToken="*****" />
 	</salesforce:sfdc-config>
 	<flow name="googlesheetFlow" doc:id="81086c67-c629-479c-b6c6-c30a658216f7" >
 		<http:listener doc:name="Listener" doc:id="74938cc6-d62f-46c4-9992-852f855b15da" config-ref="HTTP_Listener_config" path="sheet"/>
